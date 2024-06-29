@@ -46,7 +46,7 @@ impl fmt::Display for Card {
 }
 
 pub struct Deck {
-    cards: Vec<Card>,
+    pub cards: Vec<Card>,
 }
 
 impl Deck {
@@ -70,7 +70,12 @@ impl Deck {
     }
 }
 
-#[cfg(tset)]
+impl Default for Deck {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 mod tests {
     use super::*;
 

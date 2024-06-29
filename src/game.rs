@@ -1,32 +1,38 @@
 // src/game.rs
 use crate::card::{Card, Deck};
 use crate::hand_rank::HandRank;
-use crate::player::Player;
+use crate::player::{Player, PlayerStatus};
 
 pub struct Game {
     pub deck: Deck,
     pub players: Vec<Player>,
     pub community_cards: Vec<Card>,
+    pub pot: u32,
+    pub small_blind_position: usize,
 }
 
+const SMALL_BLIND: u32 = 10;
+
 impl Game {
-    pub fn new(player_count: usize) -> Self {
+    pub fn new(player_count: usize, initial_chips: u32) -> Self {
         let mut deck = Deck::new();
         deck.shuffle();
         let mut players = Vec::with_capacity(player_count);
         for _ in 0..player_count {
-            players.push(Player::new());
+            players.push(Player::new(initial_chips));
         }
         Self {
             deck,
             players,
             community_cards: Vec::with_capacity(5),
+            pot: 0,
+            small_blind_position: 0,
         }
     }
 
     pub fn deal_to_players(&mut self) {
-        for _ in 0..2 {
-            for player in &mut self.players {
+        for player in &mut self.players {
+            for _ in 0..2 {
                 if let Some(card) = self.deck.deal() {
                     player.receive_card(card);
                 }
@@ -37,6 +43,35 @@ impl Game {
     pub fn deal_community_card(&mut self) {
         if let Some(card) = self.deck.deal() {
             self.community_cards.push(card);
+        }
+    }
+
+    pub fn place_bets(&mut self, round: u32) {
+        let mut current_rasie_position = 0;
+        let mut active_players: Vec<&mut Player> = self
+            .players
+            .iter_mut()
+            .filter(|player| matches!(player.status, PlayerStatus::Betting(_)))
+            .collect();
+        // blinds
+        if round == 0 {
+            active_players[0].place_bet(SMALL_BLIND);
+            active_players[1].place_bet(SMALL_BLIND * 2);
+            current_rasie_position = 2;
+        }
+        //TODO 根据current_rasie_position 判断下注轮次
+        loop {
+            for player in &mut active_players {
+                let bet = player.place_bet(self.pot);
+                self.pot += bet;
+            }
+            let noEnd = active_players.iter().any(|player| {
+                if let PlayerStatus::Betting(bet) = player.status {
+                    bet != self.pot
+                } else {
+                    false
+                }
+            });
         }
     }
 
@@ -51,15 +86,21 @@ impl Game {
     }
 
     pub fn play_round(&mut self) {
+        //check balance
+
         self.deal_to_players();
-        for player in self.players.iter() {
+        self.players.rotate_left(self.small_blind_position);
+        for player in &self.players {
             player.show_hand();
         }
 
-        // Flop
+        // Preflop round
+        self.place_bets(0);
+
         for _ in 0..3 {
             self.deal_community_card();
         }
+        // Flop
 
         // Turn
         self.deal_community_card();
