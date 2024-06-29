@@ -129,3 +129,23 @@ impl Game {
         winner
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_game_creation() {
+        let mut game = Game::new(4, 1000);
+        game.deal_to_players();
+        assert_eq!(game.players.len(), 4);
+        assert_eq!(game.deck.cards.len(), 52 - 4 * 2); // 4 players, each dealt 2 cards
+    }
+
+    #[test]
+    fn test_play_round() {
+        let mut game = Game::new(4, 1000);
+        game.play_round();
+        assert_eq!(game.community_cards.len(), 5);
+    }
+}

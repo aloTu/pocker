@@ -76,6 +76,7 @@ impl Default for Deck {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -83,5 +84,27 @@ mod tests {
     fn test_deck_creation() {
         let deck = Deck::new();
         assert_eq!(deck.cards.len(), 52);
+    }
+    #[test]
+    fn test_card_creation() {
+        let card = Card::new(10, Suit::Hearts);
+        assert_eq!(card.rank, 10);
+        assert_eq!(card.suit, Suit::Hearts);
+    }
+
+    #[test]
+    fn test_shuffle() {
+        let mut deck = Deck::new();
+        let original_deck = deck.cards.clone();
+        deck.shuffle();
+        assert_ne!(deck.cards, original_deck);
+    }
+
+    #[test]
+    fn test_deal() {
+        let mut deck = Deck::new();
+        let card = deck.deal();
+        assert!(card.is_some());
+        assert_eq!(deck.cards.len(), 51);
     }
 }

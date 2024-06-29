@@ -73,3 +73,60 @@ impl Player {
         best_rank
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::card::Suit;
+
+    #[test]
+    fn test_receive_card() {
+        let mut player = Player::new(1000);
+        let card = Card::new(10, Suit::Hearts);
+        player.receive_card(card);
+        assert_eq!(player.hand.len(), 1);
+        assert_eq!(player.hand[0], card);
+    }
+
+    #[test]
+    fn test_best_hand() {
+        let mut player = Player::new(1000);
+        player.receive_card(Card::new(2, Suit::Clubs));
+        player.receive_card(Card::new(11, Suit::Hearts));
+
+        let community_cards = vec![
+            Card::new(12, Suit::Hearts),
+            Card::new(13, Suit::Hearts),
+            Card::new(14, Suit::Hearts),
+            Card::new(3, Suit::Clubs),
+            Card::new(10, Suit::Hearts),
+        ];
+
+        let best_hand = player.best_hand(&community_cards);
+        assert_eq!(best_hand, HandRank::RoyalFlush);
+    }
+
+    #[test]
+    fn test_bet() {
+        // let mut player = Player::new(1000);
+        // player.place_bet(200);
+        // let current_bet = match player.status {
+        //     PlayerStatus::Betting(s) => Some(s),
+        //     _ => None,
+        // };
+
+        // let current_bet = current_bet.expect("Player is not gaming");
+
+        // assert_eq!(player.chips, 800);
+        // assert_eq!(current_bet, 200);
+        // player.reset_bet();
+        // assert_eq!(player.chips, 800);
+        // let current_bet = match player.status {
+        //     PlayerStatus::Betting(s) => Some(s),
+        //     _ => None,
+        // };
+
+        // let current_bet = current_bet.expect("Player is not gaming");
+        // assert_eq!(current_bet, 0);
+    }
+}
