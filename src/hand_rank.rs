@@ -18,16 +18,20 @@ impl HandRank {
     pub fn from_cards(cards: &[Card]) -> Self {
         let mut ranks: Vec<u8> = cards.iter().map(|card| card.rank).collect();
         ranks.sort_unstable_by(|a, b| b.cmp(a));
-        println!("{:?}", ranks);
 
         let is_flush = cards.iter().all(|card| card.suit == cards[0].suit);
-        let is_straight = ranks.windows(2).all(|w| w[0] == w[1] + 1);
+        let is_straight = HandRank::is_straight(&ranks);
 
-        if is_flush && is_straight && ranks[0] == 14 {
-            return HandRank::RoyalFlush;
-        }
         if is_flush && is_straight {
-            return HandRank::StraightFlush(ranks[0]);
+            return if ranks[0] == 14 {
+                if ranks[1] == 13 {
+                    HandRank::RoyalFlush
+                } else {
+                    HandRank::StraightFlush(ranks[1])
+                }
+            } else {
+                HandRank::StraightFlush(ranks[0])
+            };
         }
 
         let mut rank_counts = [0; 15];
@@ -93,9 +97,87 @@ impl HandRank {
         }
 
         if is_straight {
-            return HandRank::Straight(ranks[0]);
+            return if ranks[0] == 14 && ranks[1] == 5 {
+                HandRank::Straight(ranks[1])
+            } else {
+                HandRank::Straight(ranks[0])
+            };
         }
 
         HandRank::HighCard(ranks[0], ranks[1], ranks[2], ranks[3], ranks[4])
+    }
+
+    fn is_straight(ranks: &[u8]) -> bool {
+        if ranks.windows(2).all(|w| w[0] == w[1] + 1) {
+            return true;
+        }
+        if ranks == [14, 5, 4, 3, 2] {
+            return true;
+        }
+        false
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::card::Suit;
+
+    #[test]
+    fn test_royal_flush() {
+        let cards = vec![
+            Card::new(10, Suit::Hearts),
+            Card::new(11, Suit::Hearts),
+            Card::new(12, Suit::Hearts),
+            Card::new(13, Suit::Hearts),
+            Card::new(14, Suit::Hearts),
+        ];
+        // 10 J Q K A
+        let hand_rank = HandRank::from_cards(&cards);
+        assert_eq!(hand_rank, HandRank::RoyalFlush);
+    }
+
+    #[test]
+    fn test_straight_flush() {
+        let cards = vec![
+            Card::new(9, Suit::Hearts),
+            Card::new(10, Suit::Hearts),
+            Card::new(11, Suit::Hearts),
+            Card::new(12, Suit::Hearts),
+            Card::new(13, Suit::Hearts),
+        ];
+        let card2 = vec![
+            Card::new(2, Suit::Hearts),
+            Card::new(14, Suit::Hearts),
+            Card::new(3, Suit::Hearts),
+            Card::new(4, Suit::Hearts),
+            Card::new(5, Suit::Hearts),
+        ];
+        let hand_rank = HandRank::from_cards(&cards);
+        let hand_rank2 = HandRank::from_cards(&card2);
+        assert_eq!(hand_rank, HandRank::StraightFlush(13));
+        assert_eq!(hand_rank2, HandRank::StraightFlush(5));
+    }
+
+    #[test]
+    fn test_straight() {
+        let cards = vec![
+            Card::new(9, Suit::Hearts),
+            Card::new(10, Suit::Hearts),
+            Card::new(11, Suit::Spades),
+            Card::new(12, Suit::Hearts),
+            Card::new(13, Suit::Diamonds),
+        ];
+        let card2 = vec![
+            Card::new(2, Suit::Hearts),
+            Card::new(14, Suit::Hearts),
+            Card::new(3, Suit::Spades),
+            Card::new(4, Suit::Hearts),
+            Card::new(5, Suit::Hearts),
+        ];
+        let hand_rank = HandRank::from_cards(&cards);
+        let hand_rank2 = HandRank::from_cards(&card2);
+        assert_eq!(hand_rank, HandRank::Straight(13));
+        assert_eq!(hand_rank2, HandRank::Straight(5));
     }
 }
