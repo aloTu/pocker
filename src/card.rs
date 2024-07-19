@@ -21,6 +21,18 @@ impl fmt::Display for Suit {
     }
 }
 
+impl From<&str> for Suit {
+    fn from(s: &str) -> Self {
+        match s {
+            "♣" => Suit::Clubs,
+            "♦" => Suit::Diamonds,
+            "♥" => Suit::Hearts,
+            "♠" => Suit::Spades,
+            &_ => panic!("Invalid suit"),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Card {
     pub rank: u8,
@@ -39,10 +51,37 @@ impl fmt::Display for Card {
             11 => "J".to_string(),
             12 => "Q".to_string(),
             13 => "K".to_string(),
+            14 => "A".to_string(),
             _ => self.rank.to_string(),
         };
         write!(f, "{}{}", rank, self.suit)
     }
+}
+
+impl From<&str> for Card {
+    fn from(s: &str) -> Self {
+        let parts = s.chars();
+        if parts.count() != 2 {
+            panic!("Invalid card");
+        }
+        let suit = s.chars().nth(0).unwrap().to_string();
+        let rank = s.chars().nth(1).unwrap().to_string();
+
+        let suit = Suit::from(suit.as_str());
+        let rank = match rank.as_str() {
+            "A" => 14,
+            "K" => 13,
+            "Q" => 12,
+            "J" => 11,
+            "X" => 10,
+            num => num.parse().unwrap(),
+        };
+        Card { rank, suit }
+    }
+}
+
+pub fn parse_cards(input: &str) -> Vec<Card> {
+    input.split(';').map(|s| Card::from(s)).collect()
 }
 
 pub struct Deck {
@@ -88,8 +127,7 @@ mod tests {
     #[test]
     fn test_card_creation() {
         let card = Card::new(10, Suit::Hearts);
-        assert_eq!(card.rank, 10);
-        assert_eq!(card.suit, Suit::Hearts);
+        assert_eq!(card, Card::from("♥10"));
     }
 
     #[test]
