@@ -127,7 +127,7 @@ mod tests {
     #[test]
     fn test_card_creation() {
         let card = Card::new(10, Suit::Hearts);
-        assert_eq!(card, Card::from("♥10"));
+        assert_eq!(card, Card::from("♥X"));
     }
 
     #[test]

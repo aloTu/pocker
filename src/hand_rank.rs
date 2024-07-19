@@ -178,23 +178,44 @@ mod tests {
 
     #[test]
     fn test_rank() {
-        let flush_cards = vec![
-            Card::new(9, Suit::Hearts),
-            Card::new(10, Suit::Hearts),
-            Card::new(10, Suit::Hearts),
-            Card::new(10, Suit::Hearts),
-            Card::new(13, Suit::Hearts),
+        let ranks = [
+            "♥X;♥J;♥Q;♥K;♥A",
+            "♦7;♦8;♦9;♦X;♦J",
+            "♥2;♥3;♥4;♥5;♥6",
+            "♠A;♥A;♦A;♣A;♠2",
+            "♠3;♥3;♦3;♣3;♠5",
+            "♠A;♥A;♦A;♣K;♠K",
+            "♥2;♠2;♦2;♠5;♥5",
+            "♠A;♠2;♠4;♠7;♠K",
+            "♦9;♦Q;♦K;♦2;♦X",
+            "♥3;♥5;♥6;♥8;♥J",
+            "♠X;♥J;♦Q;♣K;♦A",
+            "♠5;♥6;♦7;♣8;♠9",
+            "♦A;♠2;♥3;♠4;♦5",
+            "♠A;♥A;♦A;♣5;♠8",
+            "♥K;♦K;♠K;♣A;♥Q",
+            "♠K;♥K;♦K;♣7;♥9",
+            "♠A;♥A;♦J;♣J;♠5",
+            "♠Q;♦Q;♠7;♥7;♠3",
+            "♥Q;♠Q;♦3;♣3;♥X",
+            "♠A;♥A;♠K;♣3;♦2",
+            "♣K;♦K;♠9;♥5;♠7",
+            "♥Q;♠Q;♦A;♠4;♥2",
+            "♥A;♦K;♠9;♣8;♥6",
+            "♠A;♥7;♦3;♣4;♠5",
+            "♠K;♦2;♠J;♥X;♦7",
         ];
 
-        let ace_flush_cards = vec![
-            Card::new(5, Suit::Spades),
-            Card::new(3, Suit::Spades),
-            Card::new(2, Suit::Spades),
-            Card::new(13, Suit::Spades),
-            Card::new(13, Suit::Spades),
-        ];
-
-        assert!(HandRank::from_cards(&flush_cards) < HandRank::from_cards(&ace_flush_cards));
-        assert!(HandRank::from_cards(&flush_cards) < HandRank::from_cards(&ace_flush_cards));
+        let mut i = 0;
+        while i < ranks.len() - 1 {
+            assert!(
+                HandRank::from_cards_str(ranks[i]) > HandRank::from_cards_str(&ranks[i + 1]),
+                "Assertion failed at index {}: {:?} is not greater than {:?}",
+                i,
+                ranks[i],
+                ranks[i + 1]
+            );
+            i += 1;
+        }
     }
 }
