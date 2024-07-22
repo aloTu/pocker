@@ -2,6 +2,7 @@ mod card;
 mod game;
 mod hand_rank;
 mod player;
+mod utils;
 
 use game::Game;
 

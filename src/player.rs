@@ -1,5 +1,6 @@
 use crate::card::Card;
 use crate::hand_rank::HandRank;
+use crate::utils::read_command;
 use itertools::Itertools;
 
 #[derive(Debug)]
@@ -32,23 +33,43 @@ impl Player {
         self.hand.push(card);
     }
 
-    pub fn place_bet(&mut self, amount: u32) -> u32 {
+    pub fn place_bet(&mut self, amount: u32) -> PlayerStatus {
         let current_bet = match self.status {
             PlayerStatus::Betting(s) => Some(s),
             _ => None,
         };
 
         let current_bet = current_bet.expect("Player is not gaming");
-        if amount <= self.chips {
-            self.chips -= amount;
-            self.status = PlayerStatus::Betting(current_bet + amount);
-            amount
-        } else {
-            let all_in = self.chips;
-            self.chips = 0;
-            self.status = PlayerStatus::Betting(all_in);
-            all_in
+        // fold check call raise allin
+        let self_chips = self.chips;
+        let mut available_actions = vec!["fold"]; // 总是可以选择弃牌
+        match current_bet.cmp(&amount) {
+            std::cmp::Ordering::Equal => {
+                // 如果当前下注等于上一轮的下注，可以选择检查（Check）
+                available_actions.push("check");
+                // 如果有筹码可以选择加注或全下
+                if self_chips > 0 {
+                    available_actions.push("raise");
+                    available_actions.push("allin");
+                }
+            }
+            std::cmp::Ordering::Less => {
+                // 如果当前下注小于上一轮的下注，说明上家加注了
+                if self_chips > amount - current_bet {
+                    // 如果筹码足够，则可以跟注或加注
+                    available_actions.push("call");
+                    available_actions.push("raise");
+                }
+                // 不论筹码数，总可以选择全压
+                available_actions.push("allin");
+            }
+            std::cmp::Ordering::Greater => {
+                // 这种情况理论上不应出现在正常的扑克游戏中
+                // 可以考虑记录错误或者处理异常情况
+            }
         }
+
+        PlayerStatus::Betting(amount)
     }
 
     pub fn reset_bet(&mut self) {

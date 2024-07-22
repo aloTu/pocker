@@ -1,3 +1,5 @@
+use itertools::Itertools;
+
 // src/game.rs
 use crate::card::{Card, Deck};
 use crate::hand_rank::HandRank;
@@ -59,11 +61,21 @@ impl Game {
             active_players[1].place_bet(SMALL_BLIND * 2);
             current_rasie_position = 2;
         }
+        let mut current_bet = match active_players[0].status {
+            PlayerStatus::Betting(s) => s,
+            _ => panic!("Error, wrong player"),
+        };
         //TODO 根据current_rasie_position 判断下注轮次
         loop {
-            for player in &mut active_players {
-                let bet = player.place_bet(self.pot);
-                self.pot += bet;
+            active_players.rotate_left(current_rasie_position);
+            active_players.retain(|player| matches!(player.status, PlayerStatus::Betting(_)));
+            for (i, player) in active_players.iter_mut().enumerate() {
+                let hand = player.place_bet(current_bet);
+                match hand {
+                    PlayerStatus::Betting(_num) => {}
+                    PlayerStatus::Folded(_num) => {}
+                    _ => (),
+                };
             }
             let noEnd = active_players.iter().any(|player| {
                 if let PlayerStatus::Betting(bet) = player.status {
@@ -72,6 +84,9 @@ impl Game {
                     false
                 }
             });
+            if current_rasie_position == 0 {
+                break;
+            }
         }
     }
 
@@ -89,7 +104,6 @@ impl Game {
         //check balance
 
         self.deal_to_players();
-        self.players.rotate_left(self.small_blind_position);
         for player in &self.players {
             player.show_hand();
         }
