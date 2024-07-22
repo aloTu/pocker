@@ -85,6 +85,7 @@ pub fn parse_cards(input: &str) -> Vec<Card> {
 }
 
 pub struct Deck {
+    all_cards: Vec<Card>,
     pub cards: Vec<Card>,
 }
 
@@ -96,16 +97,20 @@ impl Deck {
                 cards.push(Card::new(rank, *suit));
             }
         }
-        Self { cards }
+        let all_cards = cards.clone();
+        Self { all_cards, cards }
     }
 
     pub fn shuffle(&mut self) {
+        if self.cards.len() < 52 {
+            self.cards = self.all_cards.clone();
+        }
         let mut rng = rand::thread_rng();
         self.cards.as_mut_slice().shuffle(&mut rng);
     }
 
-    pub fn deal(&mut self) -> Option<Card> {
-        self.cards.pop()
+    pub fn deal(&mut self) -> Card {
+        self.cards.pop().unwrap()
     }
 }
 
@@ -141,8 +146,7 @@ mod tests {
     #[test]
     fn test_deal() {
         let mut deck = Deck::new();
-        let card = deck.deal();
-        assert!(card.is_some());
+        deck.deal();
         assert_eq!(deck.cards.len(), 51);
     }
 }

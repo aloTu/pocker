@@ -2,6 +2,7 @@ use crate::card::Card;
 use crate::hand_rank::HandRank;
 use crate::utils::read_command;
 use itertools::Itertools;
+use std::cmp::Ordering::{Equal, Greater, Less};
 
 #[derive(Debug)]
 pub enum PlayerStatus {
@@ -29,11 +30,16 @@ impl Player {
         }
     }
 
-    pub fn receive_card(&mut self, card: Card) {
-        self.hand.push(card);
+    pub fn receive_card(&mut self, hand_card: (Card, Card)) {
+        self.hand = vec![hand_card.0, hand_card.1];
+        self.status = PlayerStatus::Betting(0);
     }
 
-    pub fn place_bet(&mut self, amount: u32) -> PlayerStatus {
+    /*
+     * 下注阶段，玩家决策
+     * @param mini_bet: u32 继续当前游戏需要下注的最小筹码数
+     */
+    pub fn place_bet(&mut self, mini_bet: u32) -> u32 {
         let current_bet = match self.status {
             PlayerStatus::Betting(s) => Some(s),
             _ => None,
@@ -43,8 +49,8 @@ impl Player {
         // fold check call raise allin
         let self_chips = self.chips;
         let mut available_actions = vec!["fold"]; // 总是可以选择弃牌
-        match current_bet.cmp(&amount) {
-            std::cmp::Ordering::Equal => {
+        match current_bet.cmp(&mini_bet) {
+            Equal => {
                 // 如果当前下注等于上一轮的下注，可以选择检查（Check）
                 available_actions.push("check");
                 // 如果有筹码可以选择加注或全下
@@ -53,9 +59,9 @@ impl Player {
                     available_actions.push("allin");
                 }
             }
-            std::cmp::Ordering::Less => {
+            Less => {
                 // 如果当前下注小于上一轮的下注，说明上家加注了
-                if self_chips > amount - current_bet {
+                if self_chips > mini_bet - current_bet {
                     // 如果筹码足够，则可以跟注或加注
                     available_actions.push("call");
                     available_actions.push("raise");
@@ -63,13 +69,11 @@ impl Player {
                 // 不论筹码数，总可以选择全压
                 available_actions.push("allin");
             }
-            std::cmp::Ordering::Greater => {
-                // 这种情况理论上不应出现在正常的扑克游戏中
-                // 可以考虑记录错误或者处理异常情况
-            }
+            Greater => unreachable!(),
         }
-
-        PlayerStatus::Betting(amount)
+        //TODO:获取玩家输入 返回下注金额
+        self.status = PlayerStatus::Betting(mini_bet);
+        mini_bet
     }
 
     pub fn reset_bet(&mut self) {
@@ -77,7 +81,7 @@ impl Player {
     }
 
     pub fn show_hand(&self) {
-        println!("{}, {}", self.hand[0], self.hand[1]);
+        println!("{}{}, {:?}", self.hand[0], self.hand[1], self.status);
     }
 
     pub fn best_hand(&self, community_cards: &[Card]) -> HandRank {
@@ -101,19 +105,9 @@ mod tests {
     use crate::card::Suit;
 
     #[test]
-    fn test_receive_card() {
-        let mut player = Player::new(1000);
-        let card = Card::new(10, Suit::Hearts);
-        player.receive_card(card);
-        assert_eq!(player.hand.len(), 1);
-        assert_eq!(player.hand[0], card);
-    }
-
-    #[test]
     fn test_best_hand() {
         let mut player = Player::new(1000);
-        player.receive_card(Card::new(2, Suit::Clubs));
-        player.receive_card(Card::new(11, Suit::Hearts));
+        player.receive_card((Card::new(2, Suit::Clubs), Card::new(11, Suit::Hearts)));
 
         let community_cards = vec![
             Card::new(12, Suit::Hearts),

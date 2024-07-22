@@ -17,6 +17,6 @@ const CONFIG: Config = Config {
 };
 
 fn main() {
-    let mut game = Game::new(1, CONFIG.initial_chips);
+    let mut game = Game::new(2, CONFIG.initial_chips);
     game.play_round();
 }

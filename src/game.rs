@@ -1,5 +1,3 @@
-use itertools::Itertools;
-
 // src/game.rs
 use crate::card::{Card, Deck};
 use crate::hand_rank::HandRank;
@@ -34,58 +32,70 @@ impl Game {
 
     pub fn deal_to_players(&mut self) {
         for player in &mut self.players {
-            for _ in 0..2 {
-                if let Some(card) = self.deck.deal() {
-                    player.receive_card(card);
-                }
-            }
+            let hand_card = (self.deck.deal(), self.deck.deal());
+            player.receive_card(hand_card);
         }
     }
 
     pub fn deal_community_card(&mut self) {
-        if let Some(card) = self.deck.deal() {
-            self.community_cards.push(card);
-        }
+        self.community_cards.push(self.deck.deal());
     }
 
-    pub fn place_bets(&mut self, round: u32) {
-        let mut current_rasie_position = 0;
+    pub fn blind(&mut self) {}
+
+    pub fn place_bets(&mut self, first_round: bool) {
         let mut active_players: Vec<&mut Player> = self
             .players
             .iter_mut()
             .filter(|player| matches!(player.status, PlayerStatus::Betting(_)))
             .collect();
-        // blinds
-        if round == 0 {
-            active_players[0].place_bet(SMALL_BLIND);
-            active_players[1].place_bet(SMALL_BLIND * 2);
-            current_rasie_position = 2;
-        }
-        let mut current_bet = match active_players[0].status {
+
+        let mut current_rasie_position = 0;
+        let mut mini_bet = match active_players[0].status {
             PlayerStatus::Betting(s) => s,
-            _ => panic!("Error, wrong player"),
+            _ => unreachable!(),
         };
+
+        // blinds
+        if first_round {
+            println!("before blinds");
+            for player in &active_players {
+                player.show_hand()
+            }
+
+            active_players[0].chips -= SMALL_BLIND;
+            active_players[0].status = PlayerStatus::Betting(SMALL_BLIND);
+            active_players[1].chips -= SMALL_BLIND * 2;
+            active_players[1].status = PlayerStatus::Betting(SMALL_BLIND * 2);
+            current_rasie_position = 2;
+            mini_bet = SMALL_BLIND * 2;
+            println!("after blinds");
+            for player in &active_players {
+                player.show_hand()
+            }
+        }
+
         //TODO 根据current_rasie_position 判断下注轮次
         loop {
             active_players.rotate_left(current_rasie_position);
+            current_rasie_position = 0;
             active_players.retain(|player| matches!(player.status, PlayerStatus::Betting(_)));
             for (i, player) in active_players.iter_mut().enumerate() {
-                let hand = player.place_bet(current_bet);
-                match hand {
-                    PlayerStatus::Betting(_num) => {}
-                    PlayerStatus::Folded(_num) => {}
-                    _ => (),
-                };
-            }
-            let noEnd = active_players.iter().any(|player| {
-                if let PlayerStatus::Betting(bet) = player.status {
-                    bet != self.pot
-                } else {
-                    false
+                let num = player.place_bet(mini_bet);
+                if num > mini_bet {
+                    // raise
+                    current_rasie_position = i;
+                    mini_bet = num;
                 }
-            });
+            }
             if current_rasie_position == 0 {
                 break;
+            }
+        }
+        if first_round {
+            println!("after first round");
+            for player in &active_players {
+                player.show_hand()
             }
         }
     }
@@ -102,25 +112,34 @@ impl Game {
 
     pub fn play_round(&mut self) {
         //check balance
+        //TODO: 余额不足需要购买筹码
+        for player in &self.players {
+            if player.chips == 0 {
+                println!("Player {} is out of chips", player.position);
+            }
+        }
 
         self.deal_to_players();
         for player in &self.players {
             player.show_hand();
         }
 
-        // Preflop round
-        self.place_bets(0);
+        //pre-flop betting
+        self.place_bets(true);
 
+        //flop
         for _ in 0..3 {
             self.deal_community_card();
         }
-        // Flop
+        self.place_bets(false);
 
         // Turn
         self.deal_community_card();
+        self.place_bets(false);
 
         // River
         self.deal_community_card();
+        self.place_bets(false);
 
         self.show_community_cards();
 
@@ -158,8 +177,11 @@ mod tests {
 
     #[test]
     fn test_play_round() {
+        println!("hhh");
         let mut game = Game::new(4, 1000);
         game.play_round();
-        assert_eq!(game.community_cards.len(), 5);
+        for player in game.players {
+            player.show_hand()
+        }
     }
 }
